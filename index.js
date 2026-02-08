@@ -156,11 +156,11 @@ app.get('/api/assignments', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('vehicle_assignments')
-      .select(`
+      .select(\`
         *,
         vehicles (reg_number),
         drivers (name)
-      `)
+      \`)
       .is('ended_at', null)
       .order('assigned_at', { ascending: false });
 
@@ -218,11 +218,11 @@ app.get('/api/trips', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('trips')
-      .select(`
+      .select(\`
         *,
         vehicles (reg_number, brand),
         drivers (name)
-      `)
+      \`)
       .order('start_time', { ascending: false });
 
     if (error) throw error;
@@ -322,10 +322,109 @@ app.delete('/api/trips/:id', async (req, res) => {
   }
 });
 
+// ==================== FUEL RECORDS ====================
+app.get('/api/fuel', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('fuel_records')
+      .select(\`
+        *,
+        vehicles (reg_number, brand)
+      \`)
+      .order('fuel_date', { ascending: false });
+
+    if (error) throw error;
+
+    const fuelRecords = data.map(f => ({
+      ...f,
+      vehicle_reg_number: f.vehicles?.reg_number,
+      vehicle_brand: f.vehicles?.brand
+    }));
+
+    res.json({ success: true, data: fuelRecords });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/fuel', async (req, res) => {
+  try {
+    const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
+    
+    const totalCost = liters * pricePerLiter;
+
+    const { data, error } = await supabase
+      .from('fuel_records')
+      .insert([{
+        vehicle_id: vehicleId,
+        fuel_date: fuelDate,
+        liters: liters,
+        price_per_liter: pricePerLiter,
+        total_cost: totalCost,
+        odometer_reading: odometerReading,
+        fuel_type: fuelType || 'diesel',
+        station_name: stationName,
+        notes: notes
+      }])
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, data: data[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/fuel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
+    
+    const totalCost = liters * pricePerLiter;
+
+    const { data, error } = await supabase
+      .from('fuel_records')
+      .update({
+        vehicle_id: vehicleId,
+        fuel_date: fuelDate,
+        liters: liters,
+        price_per_liter: pricePerLiter,
+        total_cost: totalCost,
+        odometer_reading: odometerReading,
+        fuel_type: fuelType,
+        station_name: stationName,
+        notes: notes,
+        updated_at: new Date()
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, data: data[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/fuel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('fuel_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Fleet Management API is running' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(\`Server running on port \${PORT}\`);
 });
