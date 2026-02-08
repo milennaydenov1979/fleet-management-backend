@@ -156,11 +156,11 @@ app.get('/api/assignments', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('vehicle_assignments')
-      .select(\`
+      .select(`
         *,
         vehicles (reg_number),
         drivers (name)
-      \`)
+      `)
       .is('ended_at', null)
       .order('assigned_at', { ascending: false });
 
@@ -218,11 +218,11 @@ app.get('/api/trips', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('trips')
-      .select(\`
+      .select(`
         *,
         vehicles (reg_number, brand),
         drivers (name)
-      \`)
+      `)
       .order('start_time', { ascending: false });
 
     if (error) throw error;
@@ -327,10 +327,10 @@ app.get('/api/fuel', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('fuel_records')
-      .select(\`
+      .select(`
         *,
         vehicles (reg_number, brand)
-      \`)
+      `)
       .order('fuel_date', { ascending: false });
 
     if (error) throw error;
@@ -351,6 +351,7 @@ app.post('/api/fuel', async (req, res) => {
   try {
     const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
     
+    // Calculate total cost
     const totalCost = liters * pricePerLiter;
 
     const { data, error } = await supabase
@@ -380,6 +381,7 @@ app.put('/api/fuel/:id', async (req, res) => {
     const { id } = req.params;
     const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
     
+    // Calculate total cost
     const totalCost = liters * pricePerLiter;
 
     const { data, error } = await supabase
@@ -421,10 +423,11 @@ app.delete('/api/fuel/:id', async (req, res) => {
   }
 });
 
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Fleet Management API is running' });
 });
 
 app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
+  console.log(`Server running on port ${PORT}`);
 });
