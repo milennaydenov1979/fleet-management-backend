@@ -213,7 +213,7 @@ app.put('/api/assignments/:id/end', async (req, res) => {
   }
 });
 
-// ==================== TRIPS ====================
+// ==================== TRIPS (ENHANCED) ====================
 app.get('/api/trips', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -242,12 +242,27 @@ app.get('/api/trips', async (req, res) => {
 
 app.post('/api/trips', async (req, res) => {
   try {
-    const { vehicleId, driverId, startTime, endTime, startOdometer, endOdometer, route, notes } = req.body;
+    const { 
+      vehicleId, driverId, startTime, endTime, startOdometer, endOdometer, 
+      route, notes, price, fuelCost, driverCost, otherCosts,
+      cmrNumber, clientName, cargoDescription, cargoWeight
+    } = req.body;
     
+    // Calculate distance
     let distanceKm = null;
     if (startOdometer && endOdometer) {
       distanceKm = endOdometer - startOdometer;
     }
+
+    // Calculate costs and profit
+    const fuelCostVal = parseFloat(fuelCost) || 0;
+    const driverCostVal = parseFloat(driverCost) || 0;
+    const otherCostsVal = parseFloat(otherCost) || 0;
+    const totalCosts = fuelCostVal + driverCostVal + otherCostsVal;
+    
+    const priceVal = parseFloat(price) || 0;
+    const profit = priceVal - totalCosts;
+    const profitMargin = priceVal > 0 ? (profit / priceVal) * 100 : 0;
 
     const { data, error } = await supabase
       .from('trips')
@@ -261,7 +276,18 @@ app.post('/api/trips', async (req, res) => {
         distance_km: distanceKm,
         route,
         notes,
-        status: endTime ? 'completed' : 'active'
+        status: endTime ? 'completed' : 'active',
+        price: priceVal,
+        fuel_cost: fuelCostVal,
+        driver_cost: driverCostVal,
+        other_costs: otherCostsVal,
+        total_costs: totalCosts,
+        profit: profit,
+        profit_margin: profitMargin,
+        cmr_number: cmrNumber,
+        client_name: clientName,
+        cargo_description: cargoDescription,
+        cargo_weight: cargoWeight
       }])
       .select();
 
@@ -275,12 +301,27 @@ app.post('/api/trips', async (req, res) => {
 app.put('/api/trips/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { vehicleId, driverId, startTime, endTime, startOdometer, endOdometer, route, notes } = req.body;
+    const { 
+      vehicleId, driverId, startTime, endTime, startOdometer, endOdometer, 
+      route, notes, price, fuelCost, driverCost, otherCosts,
+      cmrNumber, clientName, cargoDescription, cargoWeight
+    } = req.body;
     
+    // Calculate distance
     let distanceKm = null;
     if (startOdometer && endOdometer) {
       distanceKm = endOdometer - startOdometer;
     }
+
+    // Calculate costs and profit
+    const fuelCostVal = parseFloat(fuelCost) || 0;
+    const driverCostVal = parseFloat(driverCost) || 0;
+    const otherCostsVal = parseFloat(otherCosts) || 0;
+    const totalCosts = fuelCostVal + driverCostVal + otherCostsVal;
+    
+    const priceVal = parseFloat(price) || 0;
+    const profit = priceVal - totalCosts;
+    const profitMargin = priceVal > 0 ? (profit / priceVal) * 100 : 0;
 
     const { data, error } = await supabase
       .from('trips')
@@ -295,7 +336,18 @@ app.put('/api/trips/:id', async (req, res) => {
         route,
         notes,
         status: endTime ? 'completed' : 'active',
-        updated_at: new Date()
+        updated_at: new Date(),
+        price: priceVal,
+        fuel_cost: fuelCostVal,
+        driver_cost: driverCostVal,
+        other_costs: otherCostsVal,
+        total_costs: totalCosts,
+        profit: profit,
+        profit_margin: profitMargin,
+        cmr_number: cmrNumber,
+        client_name: clientName,
+        cargo_description: cargoDescription,
+        cargo_weight: cargoWeight
       })
       .eq('id', id)
       .select();
@@ -351,7 +403,6 @@ app.post('/api/fuel', async (req, res) => {
   try {
     const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
     
-    // Calculate total cost
     const totalCost = liters * pricePerLiter;
 
     const { data, error } = await supabase
@@ -381,7 +432,6 @@ app.put('/api/fuel/:id', async (req, res) => {
     const { id } = req.params;
     const { vehicleId, fuelDate, liters, pricePerLiter, odometerReading, fuelType, stationName, notes } = req.body;
     
-    // Calculate total cost
     const totalCost = liters * pricePerLiter;
 
     const { data, error } = await supabase
@@ -425,7 +475,7 @@ app.delete('/api/fuel/:id', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Fleet Management API is running' });
+  res.json({ status: 'ok', message: 'Fleet Management API with Analytics is running' });
 });
 
 app.listen(PORT, () => {
